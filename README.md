@@ -21,17 +21,40 @@
 1. Загрузите репозиторий на GitHub (`main` или `master`).
 2. В репозитории на GitHub перейдите в:  
    **Settings** ➔ **Pages** (в боковом меню).
-3. В пункте **Build and deployment** выберите **Source**: `GitHub Actions`.
+3. В пункте **Build and deployment** выберите **Source**: **`GitHub Actions`**  
+   *(⚠️ Внимание: если оставить «Deploy from a branch», GitHub Actions выдаст ошибку доступа)*.
 4. Готово! При каждом пуше в ветку `main` проект будет автоматически собираться и публиковаться по адресу:  
    `https://<ваш-логин>.github.io/<имя-репозитория>/`
 
-### Вариант 2: Локальная сборка
+### Вариант 2: Деплой одной командой через `npm run deploy`
+Если вы не хотите настраивать GitHub Actions, можно отправить готовую сборку прямо в ветку `gh-pages`:
+```bash
+npm install
+npm run deploy
+```
+После этого в **Settings ➔ Pages** выберите ветку `gh-pages` / `/ (root)`.
+
+### Вариант 3: Ручная сборка
 Если вы хотите вручную собрать проект в папку `dist`:
 ```bash
 npm install
 npm run build
 ```
 Содержимое папки `dist/` можно залить на любой статический хостинг (GitHub Pages, Vercel, Netlify, Timeweb и др.).
+
+---
+
+## ❓ Решение частых ошибок при деплое на GitHub
+
+1. **`Deployment to GitHub Pages failed: Resource not accessible` или `Environment github-pages not found`**:
+   * **Причина**: В настройках репозитория не выбран GitHub Actions.
+   * **Решение**: Зайдите в **Settings** ➔ **Pages** ➔ в выпадающем списке **Source** переключите с *«Deploy from a branch»* на *«GitHub Actions»*.
+
+2. **`npm ci failed / ERESOLVE could not resolve`**:
+   * **Решение**: В проекте уже обновлён `package-lock.json` и выставлены совместимые версии `vite` и `esbuild`. Убедитесь, что файл `package-lock.json` тоже отправлен в ваш GitHub репозиторий (`git add package-lock.json`).
+
+3. **`Workflow permissions`**:
+   * **Решение**: Перейдите в **Settings** ➔ **Actions** ➔ **General** ➔ внизу в разделе **Workflow permissions** убедитесь, что включено **«Read and write permissions»**.
 
 ---
 
