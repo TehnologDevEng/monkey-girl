@@ -9,6 +9,10 @@ import { BottomInspectorCard } from './components/BottomInspectorCard';
 import { DrivingSimulatorHUD } from './components/DrivingSimulatorHUD';
 import { AddSignModal } from './components/AddSignModal';
 import { NotesDrawer } from './components/NotesDrawer';
+import { InstructionGuideModal } from './components/InstructionGuideModal';
+import { QuizModal } from './components/QuizModal';
+import { IntersectionTacticsModal } from './components/IntersectionTacticsModal';
+import { ChecklistModal } from './components/ChecklistModal';
 
 import { GOST_SIGNS, AUTOSHKOLA_LOCATION, DRIVING_SIMULATION_STEPS } from './data/signsData';
 import { EXAM_ROUTES } from './data/routesData';
@@ -25,7 +29,11 @@ import {
   Plus,
   RotateCcw,
   BookOpen,
-  AlertTriangle
+  AlertTriangle,
+  HelpCircle,
+  Sparkles,
+  Navigation,
+  CheckSquare
 } from 'lucide-react';
 
 const INITIAL_INSTRUCTOR_NOTES: InstructorNote[] = [
@@ -54,7 +62,13 @@ export default function App() {
   // Persistent Real Signs state (auto-upgrades to latest verified coordinates dataset)
   const [signs, setSigns] = useState<RoadSignItem[]>(() => {
     try {
-      const saved = localStorage.getItem('noyabrsk_real_signs_v5');
+      // Clear legacy storage keys with obsolete coordinates
+      localStorage.removeItem('noyabrsk_real_signs_v5');
+      localStorage.removeItem('noyabrsk_real_signs_v4');
+      localStorage.removeItem('noyabrsk_real_signs_v3');
+      localStorage.removeItem('noyabrsk_real_signs_v2');
+
+      const saved = localStorage.getItem('noyabrsk_real_signs_v6_verified');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
@@ -69,7 +83,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem('noyabrsk_real_signs_v5', JSON.stringify(signs));
+    localStorage.setItem('noyabrsk_real_signs_v6_verified', JSON.stringify(signs));
   }, [signs]);
 
   // Notes state
@@ -94,9 +108,26 @@ export default function App() {
   const [focusCoords, setFocusCoords] = useState<[number, number] | null>(AUTOSHKOLA_LOCATION.coordinates);
 
   // Modals & Tools
+  const [isInstructionOpen, setIsInstructionOpen] = useState(false);
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const [isTacticsOpen, setIsTacticsOpen] = useState(false);
+  const [isChecklistOpen, setIsChecklistOpen] = useState(false);
   const [isNotesDrawerOpen, setIsNotesDrawerOpen] = useState(false);
   const [isDrivingSimOpen, setIsDrivingSimOpen] = useState(false);
   const [simStepIndex, setSimStepIndex] = useState(0);
+
+  // Check if first time user, auto-show guide once
+  useEffect(() => {
+    try {
+      const hasSeen = localStorage.getItem('noyabrsk_guide_seen');
+      if (!hasSeen) {
+        setIsInstructionOpen(true);
+        localStorage.setItem('noyabrsk_guide_seen', 'true');
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Sign placement mode
   const [isAddingSignMode, setIsAddingSignMode] = useState(false);
@@ -155,9 +186,9 @@ export default function App() {
 
   // Reset to original verified signs
   const handleResetSigns = () => {
-    if (window.confirm('Сбросить все знаки к проверенным знакам Ноябрьска по умолчанию?')) {
+    if (window.confirm('Сбросить все знаки к проверенным координатам дорог Ноябрьска по умолчанию?')) {
       setSigns(GOST_SIGNS);
-      localStorage.setItem('noyabrsk_real_signs', JSON.stringify(GOST_SIGNS));
+      localStorage.setItem('noyabrsk_real_signs_v6_verified', JSON.stringify(GOST_SIGNS));
     }
   };
 
@@ -208,13 +239,23 @@ export default function App() {
               </span>
             </h1>
             <p className="text-[11px] text-slate-400 hidden sm:block">
-              Старт от Автошколы на пр. Мира, 83 • Нажмите на любой поворот или знак для разбора
+              Старт от Автошколы на пр. Мира, 83 • Реальные знаки и разбор ловушек инспектора
             </p>
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* User Guide / Instructions Button */}
+          <button
+            onClick={() => setIsInstructionOpen(true)}
+            className="px-2.5 py-1.5 bg-indigo-950/70 hover:bg-indigo-900/70 text-indigo-300 hover:text-white text-xs font-bold rounded-xl border border-indigo-700/60 shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Инструкция: как пользоваться приложением"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Инструкция</span>
+          </button>
+
           {/* Start Driving Simulation */}
           <button
             onClick={handleStartDrivingSimulation}
@@ -223,6 +264,33 @@ export default function App() {
             <Car className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Поехать от Мира, 83</span>
             <span className="sm:hidden">Поехать</span>
+          </button>
+
+          {/* Quiz */}
+          <button
+            onClick={() => setIsQuizOpen(true)}
+            className="hidden lg:flex px-2.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 text-xs font-semibold rounded-xl border border-indigo-500/40 transition-colors items-center gap-1.5 cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Квиз</span>
+          </button>
+
+          {/* Tactics */}
+          <button
+            onClick={() => setIsTacticsOpen(true)}
+            className="hidden xl:flex px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition-colors items-center gap-1.5 cursor-pointer"
+          >
+            <Navigation className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Схемы</span>
+          </button>
+
+          {/* Checklist */}
+          <button
+            onClick={() => setIsChecklistOpen(true)}
+            className="hidden xl:flex px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition-colors items-center gap-1.5 cursor-pointer"
+          >
+            <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Чек-лист</span>
           </button>
 
           {/* Add Real Sign button */}
@@ -242,7 +310,7 @@ export default function App() {
           {/* Instructor Notes */}
           <button
             onClick={() => setIsNotesDrawerOpen(true)}
-            className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-2.5 py-1.5 bg-purple-950/40 hover:bg-purple-900/50 text-purple-200 text-xs font-semibold rounded-xl border border-purple-800/60 transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <BookOpen className="w-3.5 h-3.5 text-purple-400" />
             <span className="hidden md:inline">Блокнот</span>
@@ -449,6 +517,32 @@ export default function App() {
         pendingCoords={null}
         onClearPendingCoords={() => {}}
         onFocusCoordinates={(coords) => setFocusCoords(coords)}
+      />
+
+      {/* User Guide / Instructions Modal */}
+      <InstructionGuideModal
+        isOpen={isInstructionOpen}
+        onClose={() => setIsInstructionOpen(false)}
+        onStartDrive={handleStartDrivingSimulation}
+      />
+
+      {/* GIBDD Inspector Quiz Modal */}
+      <QuizModal
+        isOpen={isQuizOpen}
+        onClose={() => setIsQuizOpen(false)}
+        onFocusCoordinates={(coords) => setFocusCoords(coords)}
+      />
+
+      {/* Intersection Tactics Modal */}
+      <IntersectionTacticsModal
+        isOpen={isTacticsOpen}
+        onClose={() => setIsTacticsOpen(false)}
+      />
+
+      {/* Exam Readiness Checklist Modal */}
+      <ChecklistModal
+        isOpen={isChecklistOpen}
+        onClose={() => setIsChecklistOpen(false)}
       />
     </div>
   );
