@@ -51,14 +51,15 @@ export default function App() {
     winterMode: false
   });
 
-  // Persistent Real Signs state (auto-upgrades to latest expanded dataset)
+  // Persistent Real Signs state (auto-upgrades to latest verified coordinates dataset)
   const [signs, setSigns] = useState<RoadSignItem[]>(() => {
     try {
-      const saved = localStorage.getItem('noyabrsk_real_signs_v3');
+      const saved = localStorage.getItem('noyabrsk_real_signs_v5');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= GOST_SIGNS.length) {
-          return parsed;
+        if (Array.isArray(parsed)) {
+          const customSigns = parsed.filter(s => s.id.startsWith('custom-'));
+          return [...GOST_SIGNS, ...customSigns];
         }
       }
       return GOST_SIGNS;
@@ -68,7 +69,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem('noyabrsk_real_signs_v3', JSON.stringify(signs));
+    localStorage.setItem('noyabrsk_real_signs_v5', JSON.stringify(signs));
   }, [signs]);
 
   // Notes state

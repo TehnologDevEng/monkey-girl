@@ -390,29 +390,25 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         marker.addTo(signsGroup);
       }
 
-      // Speed & 3.27 Zones
-      if (sign.actionZone && (filters.speedZones || filters.signs)) {
+      // Speed & 3.27 Zones (отображаются только при явном включении фильтра зон скорости)
+      if (sign.actionZone && filters.speedZones) {
         const is327 = sign.signType === '3.27';
-        const isSpeed = sign.signType.startsWith('3.24');
+        const zoneColor = is327 ? '#ef4444' : sign.signType === '3.24_20' ? '#f97316' : '#eab308';
+        const line = L.polyline([sign.coordinates, sign.actionZone.endCoordinates], {
+          color: zoneColor,
+          weight: 4,
+          opacity: 0.85,
+          dashArray: is327 ? '6, 6' : undefined
+        });
 
-        if ((is327 && filters.signs) || (isSpeed && filters.speedZones)) {
-          const zoneColor = is327 ? '#ef4444' : sign.signType === '3.24_20' ? '#f97316' : '#eab308';
-          const line = L.polyline([sign.coordinates, sign.actionZone.endCoordinates], {
-            color: zoneColor,
-            weight: 5,
-            opacity: 0.85,
-            dashArray: is327 ? '6, 6' : undefined
-          });
+        line.bindTooltip(`
+          <div class="text-xs p-1">
+            <strong style="color: ${zoneColor}">${is327 ? 'Зона 3.27 «Остановка запрещена»' : 'Зона ограничения скорости'}</strong>
+            <div class="text-[11px] text-slate-800">${sign.actionZone.description}</div>
+          </div>
+        `, { sticky: true });
 
-          line.bindTooltip(`
-            <div class="text-xs p-1">
-              <strong style="color: ${zoneColor}">${is327 ? 'Зона 3.27 «Остановка запрещена»' : 'Зона ограничения скорости'}</strong>
-              <div class="text-[11px] text-slate-800">${sign.actionZone.description}</div>
-            </div>
-          `, { sticky: true });
-
-          line.addTo(is327 ? signsGroup : speedGroup);
-        }
+        line.addTo(speedGroup);
       }
     });
   }, [signs, filters.signs, filters.speedZones, selectedSignId, onSelectSign]);
